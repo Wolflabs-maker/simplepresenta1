@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WOLF LABS | CONSOLE TRAINING (A1)</title>
+    <style>
+        /* CSS VARIABLES & RESET */
+        :root {
+            --bg-base: #050505;
+            --bg-surface: #111111;
+            --bg-surface-light: #1a1a1a;
+            --accent: #00ffcc;
+            --accent-dim: rgba(0, 255, 204, 0.1);
+            --accent-hover: rgba(0, 255, 204, 0.2);
+            --danger: #ff3366;
+            --danger-dim: rgba(255, 51, 102, 0.1);
+            --success: #00ffcc;
+            --text-main: #ffffff;
+            --text-muted: #888888;
+            --border: #333333;
+            --glass-bg: rgba(17, 17, 17, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.05);
+            --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background-image: 
+                radial-gradient(circle at 50% 0%, var(--accent-dim) 0%, transparent 50%),
+                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        /* TYPOGRAPHY */
+        h1, h2, h3, .font-mono { font-family: var(--font-mono); }
+        .text-accent { color: var(--accent); }
+        .text-danger { color: var(--danger); }
+        .text-muted { color: var(--text-muted); }
+
+        /* BUTTONS */
+        button {
+            background: var(--bg-surface-light);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 12px 24px;
+            font-family: var(--font-mono);
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        button:hover:not(:disabled) {
+            background: var(--accent-dim);
+            border-color: var(--accent);
+            color: var(--accent);
+            box-shadow: 0 0 15px var(--accent-dim);
+        }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .btn-primary { background: var(--accent); color: #000; border-color: var(--accent); }
+        .btn-primary:hover:not(:disabled) { background: #00ccaa; color: #000; box-shadow: 0 0 20px var(--accent-dim); }
+
+        /* LAYOUTS */
+        #app { width: 100%; height: 100%; position: relative; }
+        
+        /* BOOT SCREEN */
+        #boot-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-base); z-index: 100;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.5s;
+        }
+        .boot-logo { font-size: 4rem; font-weight: 900; letter-spacing: 4px; margin-bottom: 20px; text-shadow: 0 0 20px var(--accent-dim); }
+        .boot-sub { font-size: 1.5rem; color: var(--text-muted); margin-bottom: 40px; }
+
+        /* MAIN UI */
+        #main-ui {
+            display: none; /* hidden by default */
+            width: 100%; height: 100%;
+            padding: 20px;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+        }
+
+        /* GLASS PANELS */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        /* CONSOLE (LEFT) */
+        .console-header {
+            padding: 20px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,0,0,0.3);
+        }
+        .console-body {
+            flex-grow: 1; padding: 40px; display: flex; flex-direction: column;
+            overflow-y: auto; position: relative;
+        }
+        .phase-title { font-size: 1.2rem; color: var(--accent); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; }
+        .task-instruction { font-size: 2rem; font-weight: bold; margin-bottom: 30px; line-height: 1.3; }
+
+        /* DASHBOARD (RIGHT) */
+        .dashboard-panel { padding: 20px; overflow-y: auto; }
+        .stat-box {
+            background: var(--bg-surface-light); border: 1px solid var(--border);
+            border-radius: 8px; padding: 15px; margin-bottom: 15px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .stat-value { font-size: 1.5rem; font-weight: bold; font-family: var(--font-mono); color: var(--accent); }
+        
+        .xp-bar-bg { width: 100%; height: 8px; background: var(--border); border-radius: 4px; margin-top: 10px; overflow: hidden; }
+        .xp-bar-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.3s; box-shadow: 0 0 10px var(--accent); }
+
+        .rule-card {
+            background: linear-gradient(145deg, var(--bg-surface-light), var(--bg-base));
+            border: 1px solid var(--accent);
+            border-radius: 8px; padding: 20px; margin-top: 20px;
+            position: relative;
+        }
+        .rule-card::before {
+            content: 'RULE'; position: absolute; top: -10px; left: 15px;
+            background: var(--bg-base); padding: 0 10px; color: var(--accent);
+            font-size: 12px; font-weight: bold; font-family: var(--font-mono);
+        }
+
+        /* TEACHER MODE TOGGLE */
+        .teacher-toggle-container {
+            display: flex; align-items: center; gap: 10px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);
+        }
+        .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--danger); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* TEACHER MODE HELPERS */
+        .teacher-mode-active .teacher-hint { display: block !important; }
+        .teacher-mode-active .correct-option { border-color: var(--accent) !important; box-shadow: 0 0 10px var(--accent-dim) !important; }
+        .teacher-hint { display: none; color: var(--danger); font-size: 0.9rem; margin-top: 10px; font-weight: bold; font-family: var(--font-mono); }
+        
+        #skip-btn { display: none; margin-left: auto; }
+        .teacher-mode-active #skip-btn { display: inline-flex; }
+
+        /* EXERCISE TYPES */
+        /* Multiple Choice & Match */
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; max-width: 800px; }
+        .option-btn { height: 80px; font-size: 1.2rem; text-transform: none; }
+        
+        /* Build Sentence */
+        .build-zone { min-height: 80px; border: 2px dashed var(--border); border-radius: 12px; padding: 15px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+        .word-bank { display: flex; flex-wrap: wrap; gap: 10px; min-height: 80px; }
+        .word-block { background: var(--bg-surface-light); border: 1px solid var(--border); padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 1.2rem; user-select: none; transition: 0.2s; }
+        .word-block:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+        /* FEEDBACK MODAL (Absolute in Console) */
+        #feedback-overlay {
+            position: absolute; bottom: 0; left: 0; width: 100%; padding: 20px;
+            transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 50; display: flex; justify-content: center;
+        }
+        #feedback-overlay.show { transform: translateY(0); }
+        .feedback-card {
+            width: 100%; max-width: 800px; padding: 20px 30px; border-radius: 12px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+            border: 1px solid transparent;
+        }
+        .feedback-card.correct { background: var(--bg-surface); border-color: var(--accent); }
+        .feedback-card.wrong { background: var(--bg-surface); border-color: var(--danger); }
+        .feedback-title { font-size: 1.5rem; font-weight: bold; margin-bottom: 5px; font-family: var(--font-mono); }
+        .feedback-card.correct .feedback-title { color: var(--accent); }
+        .feedback-card.wrong .feedback-title { color: var(--danger); }
+        .feedback-desc { font-size: 1.1rem; color: var(--text-main); }
+
+        /* BOSS FIGHT TIMER */
+        .boss-timer-container { display: none; width: 100%; height: 6px; background: var(--border); border-radius: 3px; margin-bottom: 20px; overflow: hidden; }
+        .boss-timer-fill { height: 100%; background: var(--danger); width: 100%; transition: width 1s linear; }
+
+        /* END SCREEN */
+        #end-screen {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-base); z-index: 200;
+            flex-direction: column; align-items: center; justify-content: center; padding: 40px;
+            overflow-y: auto;
+        }
+        .end-card { background: var(--glass-bg); border: 1px solid var(--accent); padding: 50px; border-radius: 20px; text-align: center; max-width: 600px; width: 100%; box-shadow: 0 0 50px var(--accent-dim); }
+
+        /* ANIMATIONS */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .shake { animation: shake 0.3s ease-in-out; }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .pulse { animation: pulse 0.5s; }
+
+        /* ICONS (SVG Setup via class) */
+        .icon { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <!-- BOOT SCREEN -->
+    <div id="boot-screen">
+        <div class="boot-logo font-mono">WOLF LABS <span class="text-accent">XOS</span></div>
+        <div class="boot-sub font-mono">A1 CONSOLE TRAINING // SIMPLE PRESENT</div>
+        <div style="max-width: 600px; text-align: center; margin-bottom: 40px; color: var(--text-muted); font-size: 1.2rem; line-height: 1.5;">
+            <p><strong>Mission Objective:</strong> Master the 'S' rule for He, She, It.</p>
+            <p>Affirmative, Negative, and Questions.</p>
+        </div>
+        <button class="btn-primary pulse" style="font-size: 1.5rem; padding: 20px 50px;" onclick="app.startMission()">
+            <svg class="icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            START MISSION
+        </button>
+    </div>
+
+    <!-- MAIN UI -->
+    <div id="main-ui">
+        <!-- CONSOLE -->
+        <div class="glass-panel">
+            <div class="console-header">
+                <div>
+                    <span class="text-muted font-mono" id="phase-indicator">PHASE 1/6</span>
+                    <span class="text-accent font-mono" style="margin-left: 15px;" id="question-indicator">Task 1/8</span>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button id="skip-btn" onclick="app.skipPhase()" title="Teacher Skip">
+                        <svg class="icon" viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg> SKIP PHASE
+                    </button>
+                    <button onclick="app.resetMission()" title="Reset">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="console-body" id="console-body">
+                <div class="boss-timer-container" id="boss-timer-container">
+                    <div class="boss-timer-fill" id="boss-timer-fill"></div>
+                </div>
+
+                <div class="phase-title" id="task-type">WARM-UP MATCH</div>
+                <div class="task-instruction" id="task-instruction">Loading task...</div>
+                
+                <div class="teacher-hint" id="teacher-hint">Answer: loading...</div>
+
+                <!-- DYNAMIC INTERACTION AREA -->
+                <div id="interaction-area" style="width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-grow: 1;">
+                    <!-- Filled by JS -->
+                </div>
+
+                <!-- FEEDBACK OVERLAY -->
+                <div id="feedback-overlay">
+                    <div class="feedback-card" id="feedback-card">
+                        <div>
+                            <div class="feedback-title" id="feedback-title">CORRECT!</div>
+                            <div class="feedback-desc" id="feedback-desc">Rule explanation here.</div>
+                        </div>
+                        <button class="btn-primary" onclick="app.nextQuestion()" id="next-btn">
+                            NEXT <svg class="icon" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DASHBOARD -->
+        <div class="glass-panel dashboard-panel">
+            <h3 class="text-accent mb-4" style="margin-bottom: 20px;">DASHBOARD</h3>
+            
+            <div class="stat-box">
+                <span class="text-muted font-mono">LEVEL</span>
+                <span class="stat-value" id="stat-level">1</span>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted);">
+                    <span>XP PROGRESS</span>
+                    <span id="stat-xp">0 / 100</span>
+                </div>
+                <div class="xp-bar-bg">
+                    <div class="xp-bar-fill" id="xp-bar"></div>
+                </div>
+            </div>
+
+            <div class="stat-box">
+                <span class="text-muted font-mono">COMBO</span>
+                <span class="stat-value" id="stat-combo">x0</span>
+            </div>
+            <div class="stat-box">
+                <span class="text-muted font-mono">ACCURACY</span>
+                <span class="stat-value" id="stat-acc">0%</span>
+            </div>
+
+            <div class="rule-card" id="rule-card">
+                <h3 style="margin-bottom: 10px; color: var(--text-main);" id="rule-title">He / She / It</h3>
+                <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5;" id="rule-desc">
+                    In the simple present, add <strong class="text-accent">-s</strong> or <strong class="text-accent">-es</strong> to the verb for He, She, and It.
+                </p>
+            </div>
+
+            <!-- TEACHER TOGGLE -->
+            <div class="teacher-toggle-container">
+                <label class="switch">
+                    <input type="checkbox" id="teacher-toggle">
+                    <span class="slider"></span>
+                </label>
+                <span class="font-mono text-muted" style="font-size: 12px; font-weight: bold;">TEACHER MODE</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- END SCREEN -->
+    <div id="end-screen">
+        <div class="end-card">
+            <svg class="icon text-accent" style="width: 80px; height: 80px; margin-bottom: 20px;" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            <h1 style="color: var(--accent); margin-bottom: 10px;">MISSION COMPLETE</h1>
+            <p style="font-size: 1.5rem; margin-bottom: 30px;" class="text-muted">A1 Simple Present Mastery</p>
+            
+            <div style="background: var(--bg-surface-light); padding: 20px; border-radius: 12px; text-align: left; margin-bottom: 30px; border: 1px solid var(--border);">
+                <p style="margin-bottom: 10px;"><strong>Final Level:</strong> <span class="text-accent" id="end-level">5</span></p>
+                <p style="margin-bottom: 10px;"><strong>Accuracy:</strong> <span class="text-accent" id="end-acc">100%</span></p>
+                <p style="margin-bottom: 10px;"><strong>Max Combo:</strong> <span class="text-accent" id="end-combo">x12</span></p>
+                <p style="margin-top: 20px; padding-top: 20px; border-top: 1px dashed var(--border); font-size: 0.9rem;" class="text-muted">
+                    <strong>Next Mission Suggestion:</strong> Adverbs of frequency (always, usually, sometimes, never) + Simple Present.
+                </p>
+            </div>
+
+            <div style="display: flex; gap: 15px; justify-content: center;">
+                <button onclick="app.copyReport()">
+                    <svg class="icon" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    COPY REPORT
+                </button>
+                <button class="btn-primary" onclick="app.resetMission()">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>
+                    RESTART
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+/**
+ * WOLF LABS - A1 CONSOLE TRAINING
+ * ENGINE: Vanilla JS
+ */
+
+const DB = [
+    // PHASE 0: WARM UP MATCH (8 items)
+    {
+        phaseTitle: "WARM-UP", ruleTitle: "He/She/It = +S", ruleDesc: "For He, She, and It, we usually add an 'S' to the action verb.",
+        type: "choice",
+        items: [
+            { q: "He + work =", options: ["works", "work", "workes"], ans: "works", explanation: "Just add -s: He works." },
+            { q: "She + play =", options: ["plaies", "plays", "play"], ans: "plays", explanation: "Add -s: She plays." },
+            { q: "It + start =", options: ["startes", "start", "starts"], ans: "starts", explanation: "Add -s: It starts." },
+            { q: "I + live =", options: ["lives", "live", "livs"], ans: "live", explanation: "I, You, We, They do NOT take an 's'." },
+            { q: "She + read =", options: ["read", "reades", "reads"], ans: "reads", explanation: "Add -s: She reads." },
+            { q: "He + sleep =", options: ["sleep", "sleeps", "sleepes"], ans: "sleeps", explanation: "Add -s: He sleeps." },
+            { q: "You + listen =", options: ["listens", "listen", "listnes"], ans: "listen", explanation: "You does NOT take an 's'." },
+            { q: "It + rain =", options: ["rains", "raines", "rain"], ans: "rains", explanation: "Add -s: It rains." }
+        ]
+    },
+    // PHASE 1: ADD -S or -ES (10 items)
+    {
+        phaseTitle: "SPELLING RULES", ruleTitle: "Add -ES", ruleDesc: "Verbs ending in <strong>-o, -ch, -sh, -ss, -x, -z</strong> take <strong>-es</strong> for He/She/It.<br><br>Examples: go -> goes, watch -> watches.",
+        type: "choice",
+        items: [
+            { q: "She ____ (watch) TV every night.", options: ["watch", "watchs", "watches"], ans: "watches", explanation: "Ends in -ch -> add -es: watches." },
+            { q: "He ____ (go) to the gym.", options: ["goes", "gos", "go"], ans: "goes", explanation: "Ends in -o -> add -es: goes." },
+            { q: "My mother ____ (wash) the car.", options: ["washs", "washes", "wash"], ans: "washes", explanation: "Ends in -sh -> add -es: washes." },
+            { q: "He ____ (do) his homework.", options: ["dos", "does", "do"], ans: "does", explanation: "Ends in -o -> add -es: does." },
+            { q: "She ____ (fix) computers.", options: ["fixes", "fixs", "fix"], ans: "fixes", explanation: "Ends in -x -> add -es: fixes." },
+            { q: "He ____ (miss) his family.", options: ["misss", "miss", "misses"], ans: "misses", explanation: "Ends in -ss -> add -es: misses." },
+            { q: "My dog ____ (catch) the ball.", options: ["catches", "catchs", "catch"], ans: "catches", explanation: "Ends in -ch -> add -es: catches." },
+            { q: "She ____ (study) English.", options: ["studys", "studies", "study"], ans: "studies", explanation: "Ends in consonant + y -> remove 'y', add -ies." },
+            { q: "He ____ (play) guitar.", options: ["plays", "plaies", "play"], ans: "plays", explanation: "Ends in vowel + y -> just add -s." },
+            { q: "It ____ (finish) at 9 PM.", options: ["finishs", "finishes", "finish"], ans: "finishes", explanation: "Ends in -sh -> add -es: finishes." }
+        ]
+    },
+    // PHASE 2: FIX THE SENTENCE (8 items)
+    {
+        phaseTitle: "DEBUG CODE", ruleTitle: "Negative: Doesn't", ruleDesc: "For He/She/It negative, use <strong>doesn't + base verb</strong>.<br>The 'S' disappears from the main verb!",
+        type: "choice",
+        items: [
+            { q: "Fix: He don't work here.", options: ["He doesn't work here.", "He doesn't works here."], ans: "He doesn't work here.", explanation: "Use doesn't. Base verb (no 's')." },
+            { q: "Fix: She doesn't likes pizza.", options: ["She don't like pizza.", "She doesn't like pizza."], ans: "She doesn't like pizza.", explanation: "The 'S' is already in doesn't. Main verb is base." },
+            { q: "Fix: It don't work.", options: ["It doesn't works.", "It doesn't work."], ans: "It doesn't work.", explanation: "Use doesn't for It. Base verb." },
+            { q: "Fix: He no plays tennis.", options: ["He doesn't play tennis.", "He doesn't plays tennis."], ans: "He doesn't play tennis.", explanation: "Use doesn't + base verb." },
+            { q: "Fix: She don't go to school.", options: ["She doesn't goes to school.", "She doesn't go to school."], ans: "She doesn't go to school.", explanation: "Use doesn't + go." },
+            { q: "Fix: My car don't start.", options: ["My car doesn't start.", "My car don't starts."], ans: "My car doesn't start.", explanation: "My car = It. Use doesn't." },
+            { q: "Fix: He doesn't has a dog.", options: ["He doesn't have a dog.", "He don't have a dog."], ans: "He doesn't have a dog.", explanation: "Base verb of has is have." },
+            { q: "Fix: She doesn't watches TV.", options: ["She don't watch TV.", "She doesn't watch TV."], ans: "She doesn't watch TV.", explanation: "Base verb is watch (no -es)." }
+        ]
+    },
+    // PHASE 3: BUILD THE SENTENCE (8 items)
+    {
+        phaseTitle: "COMPILE SYNTAX", ruleTitle: "Sentence Structure", ruleDesc: "Build the sentence in the correct order:<br><strong>Subject + Verb (+s) + Object + Time/Place</strong>",
+        type: "build",
+        items: [
+            { words: ["He", "plays", "soccer", "every", "day."], ans: "He plays soccer every day.", explanation: "Subject (He) + Verb (plays) + Object (soccer) + Time." },
+            { words: ["She", "works", "in", "a", "bank."], ans: "She works in a bank.", explanation: "Subject + Verb + Place." },
+            { words: ["It", "rains", "a", "lot", "here."], ans: "It rains a lot here.", explanation: "Subject + Verb + Quantity + Place." },
+            { words: ["He", "doesn't", "like", "coffee."], ans: "He doesn't like coffee.", explanation: "Subject + doesn't + base verb + object." },
+            { words: ["She", "watches", "movies", "at", "night."], ans: "She watches movies at night.", explanation: "Subject + Verb + Object + Time." },
+            { words: ["My", "brother", "lives", "in", "Brazil."], ans: "My brother lives in Brazil.", explanation: "Subject (My brother) + Verb (lives) + Place." },
+            { words: ["He", "doesn't", "have", "a", "car."], ans: "He doesn't have a car.", explanation: "Subject + doesn't + have (base) + object." },
+            { words: ["She", "goes", "to", "the", "gym."], ans: "She goes to the gym.", explanation: "Subject + goes + destination." }
+        ]
+    },
+    // PHASE 4: DOES QUESTIONS (8 items)
+    {
+        phaseTitle: "QUERY SYSTEM", ruleTitle: "Questions: Does", ruleDesc: "To ask a question for He/She/It, start with <strong>Does</strong>.<br>Short answers: Yes, he does. / No, he doesn't.",
+        type: "choice",
+        items: [
+            { q: "____ she live here?", options: ["Do", "Does", "Is"], ans: "Does", explanation: "Use Does to ask a question for 'she' with an action verb." },
+            { q: "Does he play guitar? (Yes)", options: ["Yes, he play.", "Yes, he does.", "Yes, he do."], ans: "Yes, he does.", explanation: "Short answer: Yes, subject + does." },
+            { q: "Does it work? (No)", options: ["No, it don't.", "No, it doesn't work.", "No, it doesn't."], ans: "No, it doesn't.", explanation: "Short answer: No, subject + doesn't." },
+            { q: "____ he like pizza?", options: ["Is", "Does", "Do"], ans: "Does", explanation: "Use Does for 'he'." },
+            { q: "Does she speak English? (Yes)", options: ["Yes, she speak.", "Yes, she does.", "Yes, she speaks."], ans: "Yes, she does.", explanation: "Short answer matches the auxiliary: does." },
+            { q: "Does your father work? (No)", options: ["No, he doesn't.", "No, he don't.", "No, he not."], ans: "No, he doesn't.", explanation: "Your father = he. Use doesn't." },
+            { q: "____ it rain in summer?", options: ["Do", "Does", "Are"], ans: "Does", explanation: "Use Does for 'it'." },
+            { q: "Does she have a car? (No)", options: ["No, she doesn't.", "No, she hasn't.", "No, she doesn't have."], ans: "No, she doesn't.", explanation: "Short answer: No, she doesn't." }
+        ]
+    },
+    // PHASE 5: BOSS FIGHT (12 items)
+    {
+        phaseTitle: "BOSS FIGHT", ruleTitle: "Ultimate Test", ruleDesc: "Fast pace! Affirmative, Negative, and Questions mixed.<br><strong>Time limit: 60 seconds!</strong>",
+        type: "boss",
+        items: [
+            { q: "He ____ (work) hard.", options: ["work", "works"], ans: "works", explanation: "Affirmative: add -s." },
+            { q: "She ____ (not/like) tea.", options: ["don't like", "doesn't like"], ans: "doesn't like", explanation: "Negative: doesn't + base verb." },
+            { q: "____ he play golf?", options: ["Do", "Does"], ans: "Does", explanation: "Question for 'he': Does." },
+            { q: "It ____ (cost) $10.", options: ["costs", "cost"], ans: "costs", explanation: "Affirmative 'it': add -s." },
+            { q: "I ____ (live) here.", options: ["lives", "live"], ans: "live", explanation: "I = base verb (no s)." },
+            { q: "She ____ (go) to bed late.", options: ["goes", "go"], ans: "goes", explanation: "Ends in o: add -es." },
+            { q: "He doesn't ____ (have) time.", options: ["has", "have"], ans: "have", explanation: "After doesn't, use base verb (have)." },
+            { q: "Does she work? Yes, she ____.", options: ["works", "does"], ans: "does", explanation: "Short answer: does." },
+            { q: "My brother ____ (study) a lot.", options: ["studys", "studies"], ans: "studies", explanation: "Consonant+y -> -ies." },
+            { q: "____ you like apples?", options: ["Do", "Does"], ans: "Do", explanation: "Question for 'you': Do." },
+            { q: "It doesn't ____ (matter).", options: ["matters", "matter"], ans: "matter", explanation: "After doesn't, use base verb." },
+            { q: "She ____ (watch) YouTube.", options: ["watches", "watch"], ans: "watches", explanation: "Ends in ch: add -es." }
+        ]
+    }
+];
+
+const app = (function() {
+    let state = {
+        phase: 0,
+        qIndex: 0,
+        xp: 0,
+        maxXP: 54 * 10, // 54 questions * 10 XP
+        streak: 0,
+        maxStreak: 0,
+        correct: 0,
+        total: 0,
+        teacherMode: false,
+        bossTimer: null,
+        bossTimeLeft: 60
+    };
+
+    // DOM Elements
+    const els = {
+        boot: document.getElementById('boot-screen'),
+        main: document.getElementById('main-ui'),
+        end: document.getElementById('end-screen'),
+        phaseInd: document.getElementById('phase-indicator'),
+        qInd: document.getElementById('question-indicator'),
+        taskType: document.getElementById('task-type'),
+        taskInst: document.getElementById('task-instruction'),
+        interArea: document.getElementById('interaction-area'),
+        fbOverlay: document.getElementById('feedback-overlay'),
+        fbCard: document.getElementById('feedback-card'),
+        fbTitle: document.getElementById('feedback-title'),
+        fbDesc: document.getElementById('feedback-desc'),
+        teacherHint: document.getElementById('teacher-hint'),
+        tToggle: document.getElementById('teacher-toggle'),
+        // Stats
+        sLevel: document.getElementById('stat-level'),
+        sXP: document.getElementById('stat-xp'),
+        xpBar: document.getElementById('xp-bar'),
+        sCombo: document.getElementById('stat-combo'),
+        sAcc: document.getElementById('stat-acc'),
+        rTitle: document.getElementById('rule-title'),
+        rDesc: document.getElementById('rule-desc'),
+        bossContainer: document.getElementById('boss-timer-container'),
+        bossFill: document.getElementById('boss-timer-fill')
+    };
+
+    function init() {
+        els.tToggle.addEventListener('change', (e) => {
+            state.teacherMode = e.target.checked;
+            if(state.teacherMode) document.body.classList.add('teacher-mode-active');
+            else document.body.classList.remove('teacher-mode-active');
+        });
+    }
+
+    function startMission() {
+        els.boot.style.opacity = '0';
+        setTimeout(() => {
+            els.boot.style.display = 'none';
+            els.main.style.display = 'grid';
+            loadPhase();
+        }, 500);
+    }
+
+    function updateDashboard() {
+        let acc = state.total > 0 ? Math.round((state.correct / state.total) * 100) : 0;
+        let level = Math.floor(state.xp / 100) + 1;
+        if(level > 5) level = 5;
+
+        els.sLevel.innerText = level;
+        els.sXP.innerText = `${state.xp} / ${state.maxXP}`;
+        els.xpBar.style.width = `${(state.xp / state.maxXP) * 100}%`;
+        els.sCombo.innerText = `x${state.streak}`;
+        els.sAcc.innerText = `${acc}%`;
+
+        // Update rule card based on phase
+        if (DB[state.phase]) {
+            els.rTitle.innerHTML = DB[state.phase].ruleTitle;
+            els.rDesc.innerHTML = DB[state.phase].ruleDesc;
+        }
+    }
+
+    function loadPhase() {
+        if (state.phase >= DB.length) {
+            endMission();
+            return;
+        }
+        state.qIndex = 0;
+        els.phaseInd.innerText = `PHASE ${state.phase + 1}/${DB.length}`;
+        els.taskType.innerText = DB[state.phase].phaseTitle;
+        
+        if(DB[state.phase].type === 'boss') {
+            startBossFight();
+        } else {
+            els.bossContainer.style.display = 'none';
+        }
+        
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        hideFeedback();
+        updateDashboard();
+        const phaseData = DB[state.phase];
+        const qData = phaseData.items[state.qIndex];
+        
+        els.qInd.innerText = `Task ${state.qIndex + 1}/${phaseData.items.length}`;
+        els.interArea.innerHTML = '';
+        els.teacherHint.innerText = `Answer: ${qData.ans}`;
+
+        if (phaseData.type === 'choice' || phaseData.type === 'boss') {
+            els.taskInst.innerHTML = qData.q;
+            const grid = document.createElement('div');
+            grid.className = 'options-grid';
+            
+            // Shuffle options
+            let opts = [...qData.options].sort(() => Math.random() - 0.5);
+            
+            opts.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                if(state.teacherMode && opt === qData.ans) btn.classList.add('correct-option');
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswerChoice(btn, opt, qData.ans, qData.explanation);
+                grid.appendChild(btn);
+            });
+            els.interArea.appendChild(grid);
+        } 
+        else if (phaseData.type === 'build') {
+            els.taskInst.innerHTML = "Reorder the blocks to build the correct sentence.";
+            
+            const buildZone = document.createElement('div');
+            buildZone.className = 'build-zone';
+            buildZone.id = 'build-zone';
+            
+            const wordBank = document.createElement('div');
+            wordBank.className = 'word-bank';
+            wordBank.id = 'word-bank';
+
+            let words = [...qData.words].sort(() => Math.random() - 0.5);
+            
+            words.forEach((w, i) => {
+                const block = document.createElement('div');
+                block.className = 'word-block';
+                block.innerText = w;
+                block.onclick = () => {
+                    if(block.parentElement.id === 'word-bank') buildZone.appendChild(block);
+                    else wordBank.appendChild(block);
+                    checkBuildReady(qData.ans, qData.explanation);
+                };
+                wordBank.appendChild(block);
+            });
+
+            els.interArea.appendChild(buildZone);
+            els.interArea.appendChild(wordBank);
+            
+            const checkBtn = document.createElement('button');
+            checkBtn.className = 'btn-primary';
+            checkBtn.innerText = 'VERIFY SYNTAX';
+            checkBtn.id = 'build-check-btn';
+            checkBtn.style.display = 'none';
+            checkBtn.style.marginTop = '20px';
+            checkBtn.onclick = () => {
+                const currentStr = Array.from(buildZone.children).map(b => b.innerText).join(' ');
+                checkAnswerBase(currentStr === qData.ans, qData.explanation);
+            };
+            els.interArea.appendChild(checkBtn);
+        }
+    }
+
+    function checkBuildReady(ans, explanation) {
+        const buildZone = document.getElementById('build-zone');
+        const wordBank = document.getElementById('word-bank');
+        const btn = document.getElementById('build-check-btn');
+        if(wordBank.children.length === 0) btn.style.display = 'inline-flex';
+        else btn.style.display = 'none';
+    }
+
+    function checkAnswerChoice(btn, selected, correct, explanation) {
+        // disable all
+        const btns = document.querySelectorAll('.option-btn');
+        btns.forEach(b => b.disabled = true);
+        
+        if (selected === correct) {
+            btn.style.background = 'var(--accent-dim)';
+            btn.style.borderColor = 'var(--accent)';
+            btn.style.color = 'var(--accent)';
+            checkAnswerBase(true, explanation);
+        } else {
+            btn.style.background = 'var(--danger-dim)';
+            btn.style.borderColor = 'var(--danger)';
+            btn.style.color = 'var(--danger)';
+            btn.classList.add('shake');
+            // highlight correct
+            btns.forEach(b => {
+                if(b.innerText === correct) {
+                    b.style.borderColor = 'var(--accent)';
+                    b.style.color = 'var(--accent)';
+                }
+            });
+            checkAnswerBase(false, explanation);
+        }
+    }
+
+    function checkAnswerBase(isCorrect, explanation) {
+        state.total++;
+        if(isCorrect) {
+            state.correct++;
+            state.streak++;
+            if(state.streak > state.maxStreak) state.maxStreak = state.streak;
+            state.xp += 10 + (state.streak > 3 ? 5 : 0); // combo bonus
+            showFeedback(true, explanation);
+        } else {
+            state.streak = 0;
+            showFeedback(false, explanation);
+        }
+        updateDashboard();
+
+        // Auto advance for boss fight if correct to keep pace high, but let's just let user click NEXT for reading explanation.
+        // Actually, prompt says "depois a próxima pergunta automaticamente". Let's do auto-advance after 2.5s or click.
+        setTimeout(() => {
+            if(els.fbOverlay.classList.contains('show')) nextQuestion();
+        }, 3500);
+    }
+
+    function showFeedback(isCorrect, desc) {
+        els.fbCard.className = 'feedback-card ' + (isCorrect ? 'correct' : 'wrong');
+        els.fbTitle.innerText = isCorrect ? 'ACCESS GRANTED' : 'SYNTAX ERROR';
+        els.fbDesc.innerHTML = desc;
+        els.fbOverlay.classList.add('show');
+    }
+
+    function hideFeedback() {
+        els.fbOverlay.classList.remove('show');
+    }
+
+    function nextQuestion() {
+        hideFeedback();
+        state.qIndex++;
+        if (state.qIndex < DB[state.phase].items.length) {
+            loadQuestion();
+        } else {
+            state.phase++;
+            loadPhase();
+        }
+    }
+
+    function skipPhase() {
+        state.phase++;
+        loadPhase();
+    }
+
+    function startBossFight() {
+        els.bossContainer.style.display = 'block';
+        state.bossTimeLeft = 60;
+        els.bossFill.style.width = '100%';
+        
+        if(state.bossTimer) clearInterval(state.bossTimer);
+        
+        state.bossTimer = setInterval(() => {
+            state.bossTimeLeft--;
+            els.bossFill.style.width = `${(state.bossTimeLeft / 60) * 100}%`;
+            
+            if(state.bossTimeLeft <= 0) {
+                clearInterval(state.bossTimer);
+                // Time up! End phase.
+                state.phase++;
+                loadPhase();
+            }
+        }, 1000);
+    }
+
+    function endMission() {
+        if(state.bossTimer) clearInterval(state.bossTimer);
+        els.main.style.display = 'none';
+        els.end.style.display = 'flex';
+        
+        let acc = state.total > 0 ? Math.round((state.correct / state.total) * 100) : 0;
+        let level = Math.floor(state.xp / 100) + 1;
+        if(level > 5) level = 5;
+
+        document.getElementById('end-level').innerText = level;
+        document.getElementById('end-acc').innerText = `${acc}%`;
+        document.getElementById('end-combo').innerText = `x${state.maxStreak}`;
+    }
+
+    function resetMission() {
+        if(state.bossTimer) clearInterval(state.bossTimer);
+        state.phase = 0;
+        state.qIndex = 0;
+        state.xp = 0;
+        state.streak = 0;
+        state.maxStreak = 0;
+        state.correct = 0;
+        state.total = 0;
+        
+        els.end.style.display = 'none';
+        els.main.style.display = 'grid';
+        loadPhase();
+    }
+
+    function copyReport() {
+        let acc = state.total > 0 ? Math.round((state.correct / state.total) * 100) : 0;
+        let text = `🐺 WOLF LABS - A1 Mission Report\nTopic: Simple Present (He/She/It)\nAccuracy: ${acc}%\nMax Combo: x${state.maxStreak}\nTotal XP: ${state.xp}`;
+        
+        try {
+            navigator.clipboard.writeText(text).then(() => {
+                alert("Report copied to clipboard! Paste it in WhatsApp.");
+            });
+        } catch (err) {
+            console.error('Failed to copy', err);
+        }
+    }
+
+    return { init, startMission, nextQuestion, skipPhase, resetMission, copyReport };
+})();
+
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        app.init();
+    } catch (e) {
+        console.error("Wolf Labs Error:", e);
+    }
+});
+</script>
+</body>
+</html>
